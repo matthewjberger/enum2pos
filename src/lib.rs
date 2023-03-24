@@ -74,7 +74,7 @@ pub fn derive_enum2pos(input: TokenStream) -> TokenStream {
 
     let expanded = quote! {
         impl #name {
-            pub fn from_index(index: usize, mut args: Vec<String>) -> Option<Self> {
+            pub fn from_index(index: usize, mut args: &[String]) -> Option<Self> {
                 match index {
                     #from_index_arms
                     _ => None

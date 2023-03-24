@@ -21,7 +21,7 @@ fn from_index_unit() {
     let args: Vec<String> = vec![];
     let expected = Some(SampleEnum::Unit);
 
-    assert_eq!(SampleEnum::from_index(index, args), expected);
+    assert_eq!(SampleEnum::from_index(index, &args), expected);
 }
 
 #[test]
@@ -30,7 +30,7 @@ fn from_index_unnamed() {
     let args = vec!["42".to_string(), "test".to_string()];
     let expected = Some(SampleEnum::Unnamed(42, String::from("test")));
 
-    assert_eq!(SampleEnum::from_index(index, args), expected);
+    assert_eq!(SampleEnum::from_index(index, &args), expected);
 }
 
 #[test]
@@ -38,5 +38,5 @@ fn from_index_invalid() {
     let index = 2;
     let args: Vec<String> = vec![];
 
-    assert_eq!(SampleEnum::from_index(index, args), None);
+    assert_eq!(SampleEnum::from_index(index, &args), None);
 }
