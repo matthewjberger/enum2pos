@@ -1,14 +1,15 @@
 [package]
 name = "enum2pos"
-version = "0.1.2"
+version = "0.1.0"
 authors = ["Matthew Berger <matthewjordanberger@gmail.com>"]
 description = """
-enum2pos is a rust derive macro that creates a Display impl for enums. 
-This is useful for strongly typing composable sets of strings.
+enum2pos is a rust derive macro for enums that generates "from_index(usize, Vec<String>) -> Option<Self>" and
+"to_index()" methods for converting between an variants and
+their position within the enum declaration (similar to an index).
 """
 homepage = "https://github.com/matthewjberger/enum2pos"
 repository = "https://github.com/matthewjberger/enum2pos"
-keywords = ["enum", "macro", "string"]
+keywords = ["enum", "macro", "string", "index"]
 license = "MIT"
 edition = "2021"
 

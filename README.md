@@ -4,52 +4,61 @@
 [<img alt="crates.io" src="https://img.shields.io/crates/v/enum2pos.svg?style=for-the-badge&color=fc8d62&logo=rust" height="20">](https://crates.io/crates/enum2pos)
 [<img alt="docs.rs" src="https://img.shields.io/badge/docs.rs-enum2pos-66c2a5?style=for-the-badge&labelColor=555555&logo=docs.rs" height="20">](https://docs.rs/enum2pos)
 
-enum2pos is a rust derive macro that creates a Display impl for enums. 
-This is useful for strongly typing composable sets of strings.
+enum2pos is a rust derive macro for enums that generates `from_index(usize, Vec<String>) -> Option<Self>` and
+`to_index()` methods for converting between an variants and
+their position within the enum declaration (similar to an index).
 
 ## Usage
 
 Add this to your `Cargo.toml`:
 
 ```toml
-enum2pos = "0.1.2"
+enum2pos = "0.1.0"
 ```
 
 Example:
 
 ```rust
-use enum2pos::EnumStr;
+use enum2pos::EnumIndex;
 
-#[derive(EnumStr)]
-enum Object {
-    Generic(String),
-
-    #[enum2pos("Color: {}. Shape: {}.")]
-    Complex(Color, Shape),
+#[derive(EnumIndex, PartialEq, Debug)]
+enum SampleEnum {
+    Unit,
+    Unnamed(i32, String),
 }
 
-#[derive(EnumStr)]
-enum Color {
-    #[enum2pos("Burgundy")]
-    Red,
-    Green,
+#[test]
+fn to_index() {
+    let unit = SampleEnum::Unit;
+    let unnamed = SampleEnum::Unnamed(42, String::from("test"));
+
+    assert_eq!(unit.to_index(), 0);
+    assert_eq!(unnamed.to_index(), 1);
 }
 
-#[derive(EnumStr)]
-enum Shape {
-    Circle,
+#[test]
+fn from_index_unit() {
+    let index = 0;
+    let args: Vec<String> = vec![];
+    let expected = Some(SampleEnum::Unit);
+
+    assert_eq!(SampleEnum::from_index(index, args), expected);
 }
 
-fn main() {
-    assert_eq!(Color::Green.to_string(), "Green");
+#[test]
+fn from_index_unnamed() {
+    let index = 1;
+    let args = vec!["42".to_string(), "test".to_string()];
+    let expected = Some(SampleEnum::Unnamed(42, String::from("test")));
 
-    assert_eq!(Color::Red.to_string(), "Burgundy");
+    assert_eq!(SampleEnum::from_index(index, args), expected);
+}
 
-    assert_eq!(Object::Generic("Hello!".to_string()).to_string(), "Hello!");
+#[test]
+fn from_index_invalid() {
+    let index = 2;
+    let args: Vec<String> = vec![];
 
-    assert_eq!(
-        Object::Complex(Color::Green, Shape::Circle).to_string(),
-        "Color: Green. Shape: Circle."
-    );
+    assert_eq!(SampleEnum::from_index(index, args), None);
 }
 ```
