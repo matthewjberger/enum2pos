@@ -1,35 +1,48 @@
-use enum2pos::EnumStr;
+use enum2pos::EnumIndex;
 
-#[derive(EnumStr)]
-enum Object {
-    Generic(String),
-
-    #[enum2pos("Color: {}. Shape: {}.")]
-    Complex(Color, Shape),
+// Example enum to test the macro
+#[derive(EnumIndex, Debug, PartialEq)]
+enum SampleEnum {
+    Unit,
+    Unnamed(i32, String),
+    Named { field: u32 },
 }
 
-#[derive(EnumStr)]
-enum Color {
-    #[enum2pos("Burgundy")]
-    Red,
-    Green,
-}
-
-#[derive(EnumStr)]
-enum Shape {
-    Circle,
-}
-
+// Test for to_index function
 #[test]
-fn enum2pos() {
-    assert_eq!(Color::Green.to_string(), "Green");
+fn test_to_index() {
+    let unit = SampleEnum::Unit;
+    let unnamed = SampleEnum::Unnamed(42, String::from("test"));
 
-    assert_eq!(Color::Red.to_string(), "Burgundy");
+    assert_eq!(unit.to_index(), 0);
+    assert_eq!(unnamed.to_index(), 1);
+}
 
-    assert_eq!(Object::Generic("Hello!".to_string()).to_string(), "Hello!");
+// Test for from_index function with unit variant
+#[test]
+fn test_from_index_unit() {
+    let index = 0;
+    let args: Vec<String> = vec![];
+    let expected = Some(SampleEnum::Unit);
 
-    assert_eq!(
-        Object::Complex(Color::Green, Shape::Circle).to_string(),
-        "Color: Green. Shape: Circle."
-    );
+    assert_eq!(SampleEnum::from_index(index, args), expected);
+}
+
+// Test for from_index function with unnamed variant
+#[test]
+fn test_from_index_unnamed() {
+    let index = 1;
+    let args = vec!["42".to_string(), "test".to_string()];
+    let expected = Some(SampleEnum::Unnamed(42, String::from("test")));
+
+    assert_eq!(SampleEnum::from_index(index, args), expected);
+}
+
+// Test for from_index function with invalid index
+#[test]
+fn test_from_index_invalid() {
+    let index = 2;
+    let args: Vec<String> = vec![];
+
+    assert_eq!(SampleEnum::from_index(index, args), None);
 }

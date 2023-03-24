@@ -1,7 +1,7 @@
 use proc_macro::TokenStream;
-use proc_macro2::{Ident, Span, TokenStream as TokenStream2};
-use quote::{quote, quote_spanned, ToTokens};
-use syn::{parse_macro_input, spanned::Spanned, Data, DeriveInput, Error, Fields, FieldsUnnamed};
+use proc_macro2::{Span, TokenStream as TokenStream2};
+use quote::{quote, quote_spanned};
+use syn::{parse_macro_input, spanned::Spanned, Data, DeriveInput, Error, Fields};
 
 macro_rules! derive_error {
     ($string: tt) => {
@@ -11,7 +11,7 @@ macro_rules! derive_error {
     };
 }
 
-#[proc_macro_derive(EnumStr, attributes(enum2pos))]
+#[proc_macro_derive(EnumIndex, attributes(enum2pos))]
 pub fn derive_enum2pos(input: TokenStream) -> TokenStream {
     let input: DeriveInput = parse_macro_input!(input as DeriveInput);
 
@@ -22,71 +22,68 @@ pub fn derive_enum2pos(input: TokenStream) -> TokenStream {
         _ => return derive_error!("enum2pos only supports enums"),
     };
 
-    let mut match_arms = TokenStream2::new();
+    let mut from_index_arms = TokenStream2::new();
+    let mut to_index_arms = TokenStream2::new();
 
-    for variant in data.variants.iter() {
+    for (index, variant) in data.variants.iter().enumerate() {
         let variant_name = &variant.ident;
 
         match variant.fields {
             Fields::Unit => {
-                let mut display_ident = "{}".to_string().to_token_stream();
-
-                for attr in &variant.attrs {
-                    if attr.path.is_ident("enum2pos") && attr.path.segments.first().is_some() {
-                        match attr.parse_args::<syn::LitStr>() {
-                            Ok(literal) => display_ident = literal.to_token_stream(),
-                            Err(_) => {
-                                return derive_error!(
-                                    r#"The 'enum2pos' attribute is missing a String argument. Example: #[enum2pos("Listening on: {} {}")] "#
-                                );
-                            }
-                        }
-                    }
-                }
-
-                match_arms.extend(quote_spanned! {
+                to_index_arms.extend(quote_spanned! {
                     variant.span() =>
-                        #name::#variant_name =>  write!(f, "{}", stringify!(#display_ident)),
+                        #name::#variant_name => #index,
+                });
+
+                from_index_arms.extend(quote_spanned!(
+                    variant.span() =>
+                        #index => Some(#name::#variant_name),
+                ));
+            }
+
+            Fields::Unnamed(ref fields) => {
+                let field_count = fields.unnamed.len();
+                let field_pats = (0..field_count).map(|_| quote!(_)).collect::<Vec<_>>();
+
+                to_index_arms.extend(quote_spanned! {
+                    variant.span() =>
+                        #name::#variant_name(#(#field_pats),*) => #index,
+                });
+
+                let field_types = fields.unnamed.iter().map(|f| &f.ty);
+                let field_constructors = field_types.clone().map(
+                    |ty| quote_spanned! { ty.span() => args_iter.next()?.parse::<#ty>().ok()? },
+                );
+                from_index_arms.extend(quote_spanned! {
+                    variant.span() =>
+                        #index => {
+                            let mut args_iter = args.into_iter();
+                            Some(#name::#variant_name(#(#field_constructors),*))
+                        },
                 });
             }
-            Fields::Unnamed(FieldsUnnamed { ref unnamed, .. }) => {
-                let mut format_ident = "{}".to_string().to_token_stream();
 
-                for attr in &variant.attrs {
-                    if attr.path.is_ident("enum2pos") && attr.path.segments.first().is_some() {
-                        match attr.parse_args::<syn::LitStr>() {
-                            Ok(literal) => format_ident = literal.to_token_stream(),
-                            Err(_) => {
-                                return derive_error!(
-                                    r#"The 'enum2pos' attribute is missing a String argument. Example: #[enum2pos("Listening on: {} {}")] "#
-                                );
-                            }
-                        }
-                    }
-                }
-
-                let fields = unnamed.iter().len();
-                let args = ('a'..='z')
-                    .take(fields)
-                    .map(|letter| Ident::new(&letter.to_string(), variant.span()))
-                    .collect::<Vec<_>>();
-                match_arms.extend(quote_spanned! {
-                    variant.span() => #name::#variant_name(#(#args),*) =>  write!(f, #format_ident, #(#args),*),
+            Fields::Named(..) => {
+                to_index_arms.extend(quote_spanned! {
+                    variant.span() =>
+                        #name::#variant_name{..} => #index,
                 });
-            }
-            _ => {
-                return derive_error!(
-                    "enum2pos is only implemented for unit and unnamed-field enums"
-                )
             }
         };
     }
 
     let expanded = quote! {
-        impl core::fmt::Display for #name {
-            fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+        impl #name {
+            pub fn from_index(index: usize, mut args: Vec<String>) -> Option<Self> {
+                match index {
+                    #from_index_arms
+                    _ => None
+                }
+            }
+
+            pub fn to_index(&self) -> usize {
                 match self {
-                    #match_arms
+                    #to_index_arms
                 }
             }
         }
