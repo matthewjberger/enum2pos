@@ -13,7 +13,7 @@ their position within the enum declaration (similar to an index).
 Add this to your `Cargo.toml`:
 
 ```toml
-enum2pos = "0.1.1"
+enum2pos = "0.1.2"
 ```
 
 Example:
