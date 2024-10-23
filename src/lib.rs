@@ -57,7 +57,7 @@ pub fn derive_enum2pos(input: TokenStream) -> TokenStream {
                 from_index_arms.extend(quote_spanned! {
                     variant.span() =>
                         #index => {
-                            let mut args_iter = args.into_iter();
+                            let mut args_iter = args.iter();
                             Some(#name::#variant_name(#(#field_constructors),*))
                         },
                 });

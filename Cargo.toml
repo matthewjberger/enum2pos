@@ -1,6 +1,6 @@
 [package]
 name = "enum2pos"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Matthew Berger <matthewjordanberger@gmail.com>"]
 description = """
 enum2pos is a rust derive macro for enums that generates "from_index(usize, Vec<String>) -> Option<Self>" and
